@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="ASCII">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caça aos Carros!</title>
+    <style>
+        canvas { border: 1px solid black; }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f0f0; }
+        #game-over { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; font-family: Arial, sans-serif; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="game-over">
+        <h1>Game Over</h1>
+        <p>Pressione R para reiniciar</p>
+        <p id="bonus-text"></p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const tileSize = 40;
+
+        // Mapa do labirinto (1 = parede, 0 = caminho)
+        const maze = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1],
+            [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+
+        // Posições iniciais
+        let player = { x: 1, y: 1, energy: 100, bonus: 0 };
+        let cars = [
+            { x: 3, y: 1, collected: false },
+            { x: 5, y: 3, collected: false },
+            { x: 8, y: 7, collected: false },
+            { x: 15, y: 9, collected: false }
+        ];
+        let pills = [
+            { x: 2, y: 5, collected: false },
+            { x: 10, y: 2, collected: false }
+        ];
+        let enemies = [
+            { x: 10, y: 5, dirX: 1, dirY: 0 },
+            { x: 15, y: 3, dirX: 0, dirY: 1 }
+        ];
+        const finish = { x: 18, y: 9 }; // "Chave na Mão"
+
+        // Carregar imagens (você precisará criar esses arquivos)
+        const playerImg = new Image(); playerImg.src = 'player.png';
+        const carImg = new Image(); carImg.src = 'car.png';
+        const pillImg = new Image(); pillImg.src = 'pill.png';
+        const enemyImg = new Image(); enemyImg.src = 'enemy.png';
+        const finishImg = new Image(); finishImg.src = 'finish.png';
+        const wallImg = new Image(); wallImg.src = 'wall.png';
+
+        // Sons (você precisará criar esses arquivos)
+        const collectSound = new Audio('collect.wav');
+        const pillSound = new Audio('pill.wav');
+        const gameOverSound = new Audio('gameover.wav');
+        const winSound = new Audio('win.wav');
+
+        let gameOver = false;
+
+        // Movimento do jogador
+        document.addEventListener('keydown', (e) => {
+            if (gameOver && e.key === 'r') resetGame();
+            if (gameOver) return;
+
+            let newX = player.x;
+            let newY = player.y;
+
+            if (e.key === 'ArrowUp') newY--;
+            if (e.key === 'ArrowDown') newY++;
+            if (e.key === 'ArrowLeft') newX--;
+            if (e.key === 'ArrowRight') newX++;
+
+            if (maze[newY][newX] === 0) {
+                player.x = newX;
+                player.y = newY;
+                player.energy -= 2; // Gasta energia ao se mover
+            }
+        });
+
+        // Lógica do jogo
+        function update() {
+            if (player.energy <= 0 || gameOver) {
+                gameOver = true;
+                document.getElementById('game-over').style.display = 'block';
+                document.getElementById('bonus-text').textContent = `Bônus acumulado: R$ ${player.bonus}`;
+                gameOverSound.play();
+                return;
+            }
+
+            // Coleta de carros
+            cars.forEach(car => {
+                if (!car.collected && player.x === car.x && player.y === car.y) {
+                    car.collected = true;
+                    player.bonus += 1000;
+                    collectSound.play();
+                }
+            });
+
+            // Coleta de pílulas
+            pills.forEach(pill => {
+                if (!pill.collected && player.x === pill.x && player.y === pill.y) {
+                    pill.collected = true;
+                    player.energy = Math.min(100, player.energy + 50);
+                    pillSound.play();
+                }
+            });
+
+            // Movimento dos inimigos
+            enemies.forEach(enemy => {
+                let newX = enemy.x + enemy.dirX;
+                let newY = enemy.y + enemy.dirY;
+                if (maze[newY][newX] === 0) {
+                    enemy.x = newX;
+                    enemy.y = newY;
+                } else {
+                    enemy.dirX = -enemy.dirX;
+                    enemy.dirY = -enemy.dirY;
+                }
+                if (enemy.x === player.x && enemy.y === player.y) gameOver = true;
+            });
+
+            // Verifica vitória
+            if (player.x === finish.x && player.y === finish.y) {
+                gameOver = true;
+                winSound.play();
+                alert(`Parabéns! Você chegou à Chave na Mão com R$ ${player.bonus} em bônus!`);
+            }
+        }
+
+        // Renderização
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha o labirinto
+
+
+            for (let y = 0; y < maze.length; y++) {
+                for (let x = 0; x < maze[y].length; x++) {
+                    if (maze[y][x] === 1) ctx.drawImage(wallImg, x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+
+
+            // Desenha carros
+            cars.forEach(car => {
+                if (!car.collected) ctx.drawImage(carImg, car.x * tileSize, car.y * tileSize, tileSize, tileSize);
+            });
+
+            // Desenha pílulas
+            pills.forEach(pill => {
+                if (!pill.collected) ctx.drawImage(pillImg, pill.x * tileSize, pill.y * tileSize, tileSize, tileSize);
+            });
+
+            // Desenha inimigos
+            enemies.forEach(enemy => ctx.drawImage(enemyImg, enemy.x * tileSize, enemy.y * tileSize, tileSize, tileSize));
+
+            // Desenha o final ("Chave na Mão")
+            ctx.drawImage(finishImg, finish.x * tileSize, finish.y * tileSize, tileSize, tileSize);
+
+            // Desenha o jogador
+            ctx.drawImage(playerImg, player.x * tileSize, player.y * tileSize, tileSize, tileSize);
+
+            // Desenha energia e bônus
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText(`Energia: ${player.energy}`, 10, 470);
+            ctx.fillText(`Bônus: R$ ${player.bonus}`, 10, 500);
+        }
+
+        // Reinicia o jogo
+        function resetGame() {
+            player = { x: 1, y: 1, energy: 100, bonus: 0 };
+            cars.forEach(car => car.collected = false);
+            pills.forEach(pill => pill.collected = false);
+            enemies[0] = { x: 10, y: 5, dirX: 1, dirY: 0 };
+            enemies[1] = { x: 15, y: 3, dirX: 0, dirY: 1 };
+            gameOver = false;
+            document.getElementById('game-over').style.display = 'none';
+        }
+
+        // Loop do jogo
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

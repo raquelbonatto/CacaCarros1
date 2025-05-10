@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="ASCII">
+    <meta charset="UFT-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Caça aos Carros!</title>
+    <title>CaÃ§a aos Carros!</title>
     <style>
         canvas { border: 1px solid black; }
         body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f0f0; }
@@ -38,7 +38,7 @@
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
         ];
 
-        // Posições iniciais
+        // PosiÃ§Ãµes iniciais
         let player = { x: 1, y: 1, energy: 100, bonus: 0 };
         let cars = [
             { x: 3, y: 1, collected: false },
@@ -54,9 +54,9 @@
             { x: 10, y: 5, dirX: 1, dirY: 0 },
             { x: 15, y: 3, dirX: 0, dirY: 1 }
         ];
-        const finish = { x: 18, y: 9 }; // "Chave na Mão"
+        const finish = { x: 18, y: 9 }; // "Chave na MÃ£o"
 
-        // Carregar imagens (você precisará criar esses arquivos)
+        // Carregar imagens (vocÃª precisarÃ¡ criar esses arquivos)
         const playerImg = new Image(); playerImg.src = 'player.png';
         const carImg = new Image(); carImg.src = 'car.png';
         const pillImg = new Image(); pillImg.src = 'pill.png';
@@ -64,7 +64,7 @@
         const finishImg = new Image(); finishImg.src = 'finish.png';
         const wallImg = new Image(); wallImg.src = 'wall.png';
 
-        // Sons (você precisará criar esses arquivos)
+        // Sons (vocÃª precisarÃ¡ criar esses arquivos)
         const collectSound = new Audio('collect.wav');
         const pillSound = new Audio('pill.wav');
         const gameOverSound = new Audio('gameover.wav');
@@ -92,12 +92,12 @@
             }
         });
 
-        // Lógica do jogo
+        // LÃ³gica do jogo
         function update() {
             if (player.energy <= 0 || gameOver) {
                 gameOver = true;
                 document.getElementById('game-over').style.display = 'block';
-                document.getElementById('bonus-text').textContent = `Bônus acumulado: R$ ${player.bonus}`;
+                document.getElementById('bonus-text').textContent = `BÃ´nus acumulado: R$ ${player.bonus}`;
                 gameOverSound.play();
                 return;
             }
@@ -111,7 +111,7 @@
                 }
             });
 
-            // Coleta de pílulas
+            // Coleta de pÃ­lulas
             pills.forEach(pill => {
                 if (!pill.collected && player.x === pill.x && player.y === pill.y) {
                     pill.collected = true;
@@ -134,15 +134,15 @@
                 if (enemy.x === player.x && enemy.y === player.y) gameOver = true;
             });
 
-            // Verifica vitória
+            // Verifica vitÃ³ria
             if (player.x === finish.x && player.y === finish.y) {
                 gameOver = true;
                 winSound.play();
-                alert(`Parabéns! Você chegou à Chave na Mão com R$ ${player.bonus} em bônus!`);
+                alert(`ParabÃ©ns! VocÃª chegou Ã  Chave na MÃ£o com R$ ${player.bonus} em bÃ´nus!`);
             }
         }
 
-        // Renderização
+        // RenderizaÃ§Ã£o
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -161,7 +161,7 @@
                 if (!car.collected) ctx.drawImage(carImg, car.x * tileSize, car.y * tileSize, tileSize, tileSize);
             });
 
-            // Desenha pílulas
+            // Desenha pÃ­lulas
             pills.forEach(pill => {
                 if (!pill.collected) ctx.drawImage(pillImg, pill.x * tileSize, pill.y * tileSize, tileSize, tileSize);
             });
@@ -169,17 +169,17 @@
             // Desenha inimigos
             enemies.forEach(enemy => ctx.drawImage(enemyImg, enemy.x * tileSize, enemy.y * tileSize, tileSize, tileSize));
 
-            // Desenha o final ("Chave na Mão")
+            // Desenha o final ("Chave na MÃ£o")
             ctx.drawImage(finishImg, finish.x * tileSize, finish.y * tileSize, tileSize, tileSize);
 
             // Desenha o jogador
             ctx.drawImage(playerImg, player.x * tileSize, player.y * tileSize, tileSize, tileSize);
 
-            // Desenha energia e bônus
+            // Desenha energia e bÃ´nus
             ctx.fillStyle = 'black';
             ctx.font = '20px Arial';
             ctx.fillText(`Energia: ${player.energy}`, 10, 470);
-            ctx.fillText(`Bônus: R$ ${player.bonus}`, 10, 500);
+            ctx.fillText(`BÃ´nus: R$ ${player.bonus}`, 10, 500);
         }
 
         // Reinicia o jogo
